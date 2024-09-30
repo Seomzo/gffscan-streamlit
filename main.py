@@ -5,7 +5,7 @@ from PyPDF2 import PdfReader
 from verbiage import SUCCESSFUL_VERBIAGE
 
 # Define verbiage
-SUCCESSFUL_VERBIAGE = SUCCESSFUL_VERBIAGE
+SUCCESSFUL_VERBIAGE = st.secrets["verbiage"]["successful_verbiage"]
 
 # Function to extract text from a PDF
 def extract_text_from_pdf(pdf_file):

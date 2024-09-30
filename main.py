@@ -2,7 +2,6 @@ import os
 import re
 import streamlit as st
 from PyPDF2 import PdfReader
-from verbiage import SUCCESSFUL_VERBIAGE
 
 # Define verbiage
 SUCCESSFUL_VERBIAGE = st.secrets["verbiage"]["successful_verbiage"]

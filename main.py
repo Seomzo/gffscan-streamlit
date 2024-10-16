@@ -5,7 +5,7 @@ from PyPDF2 import PdfReader
 
 # Define verbiage
 SUCCESSFUL_VERBIAGE = st.secrets["verbiage"]["successful_verbiage"]
-
+UNSUCCESSFUL_VERBIAGE = st.secrets["verbiage2"]["unsuccessful_verbiage"]
 # Function to extract text from a PDF
 def extract_text_from_pdf(pdf_file):
     try:
@@ -57,12 +57,11 @@ def extract_vehicle_details(text):
 
     return vehicle_details
 
-# Function to extract action messages
 def extract_action_messages(text):
-    action_messages = set()
+    action_messages = []
     lines = text.splitlines()
     ignore_phrases = [
-        "Test step: ", 
+        "Test step:", 
         "Please wait...", 
         "NO NOTE", 
         "- Note the following boundary conditions:", 
@@ -84,25 +83,78 @@ def extract_action_messages(text):
     
     for i, line in enumerate(lines):
         if re.match(r"Action:\s+Message", line.strip()):
-            if i + 1 < len(lines):
-                next_line = lines[i + 1].strip()
-                if next_line and not re.match(r"Action:\s+Message", next_line) and not any(phrase in next_line for phrase in ignore_phrases):
-                    action_messages.add(next_line)
-    return list(action_messages)
+            # Capture the next two lines if available
+            next_lines = []
+            for j in range(1, 3):  # Capture the two lines after "Action: Message"
+                if i + j < len(lines):
+                    next_line = lines[i + j].strip()
+                    if next_line and not any(phrase in next_line for phrase in ignore_phrases):
+                        next_lines.append(next_line)
+            # Add the message with the two following lines (if available)
+            if next_lines:
+                action_messages.append(f"{line}\n{next_lines[0]}\n{next_lines[1] if len(next_lines) > 1 else ''}")
+    
+    return action_messages
+
+
+# # Function to extract action messages
+# def extract_action_messages(text):
+#     action_messages = set()
+#     lines = text.splitlines()
+#     ignore_phrases = [
+#         "Test step: ", 
+#         "Please wait...", 
+#         "NO NOTE", 
+#         "- Note the following boundary conditions:", 
+#         "Parameters:", 
+#         "NOTE:", 
+#         "Please wait.",
+#         "Data for the diagnosis log:",
+#         "MSG_OH_SOD_KuehlsystemBefuellenEntlueften",
+#         "CM designation: EV_MUStd4CTSA T_001",
+#         "With this test program the following test steps will be performed:",
+#         "Service:",
+#         "CM designation:",
+#         "Action:",
+#         "Ignition cycle:",
+#         "- Switch on the ignition.",
+#         "Result: OK",
+#         "MSG_OT_SOD"
+#     ]
+    
+    # for i, line in enumerate(lines):
+    #     if re.match(r"Action:\s+Message", line.strip()):
+    #         if i + 1 < len(lines):
+    #             next_line = lines[i + 1].strip()
+    #             next_line = lines[i + 1].strip()
+    #             if next_line and not re.match(r"Action:\s+Message", next_line) and not any(phrase in next_line for phrase in ignore_phrases):
+    #                 action_messages.add(next_line)
+    # return list(action_messages)
 
 # Function to preprocess the log
 def preprocess_gff_log(text):
     vehicle_details = extract_vehicle_details(text)
     action_messages = extract_action_messages(text)
-    matching_messages = []
+    matching_successful = []
+    matching_unsuccessful = []
     
     for msg in action_messages:
+        matched = False
+        # Check for successful verbiage
         for verbiage in SUCCESSFUL_VERBIAGE:
             if verbiage.lower().strip() in msg.lower():
-                matching_messages.append(msg)
-                break
+                matching_successful.append(msg)
+                matched = True
+                break  # No need to check unsuccessful verbiage if it's already successful
+                
+        # If not successful, check for unsuccessful verbiage
+        if not matched:
+            for verbiage in UNSUCCESSFUL_VERBIAGE:
+                if verbiage.lower().strip() in msg.lower():
+                    matching_unsuccessful.append(msg)
+                    break
     
-    return vehicle_details, action_messages, matching_messages
+    return vehicle_details, action_messages, matching_successful, matching_unsuccessful
 
 # Streamlit UI for file upload and processing
 def main():
@@ -117,7 +169,7 @@ def main():
         if gff_log_text:
             st.subheader("Extracted Vehicle Details and Action Messages")
             
-            vehicle_details, action_messages, matching_messages = preprocess_gff_log(gff_log_text)
+            vehicle_details, action_messages, matching_successful, matching_unsuccessful = preprocess_gff_log(gff_log_text)
 
             # Display vehicle details
             st.write("### Vehicle Details:")
@@ -127,11 +179,13 @@ def main():
             # Display action messages
             st.write("### Action Messages:")
             for msg in action_messages:
-                if msg in matching_messages:
-                    st.markdown(f'<span style="background-color: yellow;">{msg}</span>', unsafe_allow_html=True)
+                if msg in matching_successful:
+                    st.markdown(f'<span style="background-color: lightgreen;">{msg}</span>', unsafe_allow_html=True)
+                elif msg in matching_unsuccessful:
+                    st.markdown(f'<span style="background-color: red;">{msg}</span>', unsafe_allow_html=True)
                 else:
                     st.write(msg)
-        else:
+        else:              
             st.error("Failed to extract text from the GFF log PDF file.")
 
 if __name__ == '__main__':

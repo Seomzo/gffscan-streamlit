@@ -3,10 +3,10 @@ import re
 import streamlit as st
 from PyPDF2 import PdfReader
 
-# Define verbiage
+# Load verbiage from secrets
 SUCCESSFUL_VERBIAGE = st.secrets["verbiage"]["successful_verbiage"]
 UNSUCCESSFUL_VERBIAGE = st.secrets["verbiage2"]["unsuccessful_verbiage"]
-# Function to extract text from a PDF
+
 def extract_text_from_pdf(pdf_file):
     try:
         pdf = PdfReader(pdf_file)
@@ -20,41 +20,22 @@ def extract_text_from_pdf(pdf_file):
         st.error(f"Error reading PDF file: {e}")
         return None
 
-# Function to extract vehicle details
 def extract_vehicle_details(text):
     vehicle_details = {}
-    brand_match = re.search(r"Brand:\s*(.+)", text)
-    if brand_match:
-        vehicle_details['Brand'] = brand_match.group(1).strip()
-    
-    type_match = re.search(r"Type:\s*(.+)", text)
-    if type_match:
-        vehicle_details['Type'] = type_match.group(1).strip()
-    
-    model_year_match = re.search(r"Model year:\s*(.+)", text)
-    if model_year_match:
-        vehicle_details['Model Year'] = model_year_match.group(1).strip()
-
-    vin_match = re.search(r"VIN.*?:\s*([A-Z0-9]+)", text)
-    if vin_match:
-        vehicle_details['VIN'] = vin_match.group(1).strip()
-
-    engine_match = re.search(r"Engine code:\s*(.+)", text)
-    if engine_match:
-        vehicle_details['Engine'] = engine_match.group(1).strip()
-
-    odometer_match = re.search(r"Odometer reading \(km\):\s*([0-9]+)", text)
-    if odometer_match:
-        vehicle_details['Odometer Reading'] = odometer_match.group(1).strip()
-
-    time_required_match = re.search(r"Time required \(TU\):\s*(.+)", text)
-    if time_required_match:
-        vehicle_details['Time Required (TU)'] = time_required_match.group(1).strip()
-
-    log_status_match = re.search(r"Log status:\s*(.+)", text)
-    if log_status_match:
-        vehicle_details['Log Status'] = log_status_match.group(1).strip()
-
+    patterns = {
+        'Brand': r"Brand:\s*(.+)",
+        'Type': r"Type:\s*(.+)",
+        'Model Year': r"Model year:\s*(.+)",
+        'VIN': r"VIN.*?:\s*([A-Z0-9]+)",
+        'Engine': r"Engine code:\s*(.+)",
+        'Odometer Reading': r"Odometer reading \(km\):\s*([0-9]+)",
+        'Time Required (TU)': r"Time required \(TU\):\s*(.+)",
+        'Log Status': r"Log status:\s*(.+)"
+    }
+    for key, pattern in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            vehicle_details[key] = match.group(1).strip()
     return vehicle_details
 
 def extract_action_messages(text):
@@ -80,83 +61,51 @@ def extract_action_messages(text):
         "Result: OK",
         "MSG_OT_SOD"
     ]
-    
+
     for i, line in enumerate(lines):
         if re.match(r"Action:\s+Message", line.strip()):
-            # Capture the next two lines if available
-            next_lines = []
-            for j in range(1, 3):  # Capture the two lines after "Action: Message"
+            # Capture the next two lines
+            message_lines = []
+            for j in range(1, 3):  # Get next two lines
                 if i + j < len(lines):
                     next_line = lines[i + j].strip()
+                    # Normalize the text by removing unwanted characters
+                    next_line = next_line.replace('-', '').strip()
+                    # Filter out unwanted messages
                     if next_line and not any(phrase in next_line for phrase in ignore_phrases):
-                        next_lines.append(next_line)
-            # Add the message with the two following lines (if available)
-            if next_lines:
-                action_messages.append(f"{line}\n{next_lines[0]}\n{next_lines[1] if len(next_lines) > 1 else ''}")
-    
+                        message_lines.append(next_line)
+            if message_lines:
+                # Combine the message lines
+                full_message = ' '.join(message_lines)
+                action_messages.append(full_message)
     return action_messages
 
-
-# # Function to extract action messages
-# def extract_action_messages(text):
-#     action_messages = set()
-#     lines = text.splitlines()
-#     ignore_phrases = [
-#         "Test step: ", 
-#         "Please wait...", 
-#         "NO NOTE", 
-#         "- Note the following boundary conditions:", 
-#         "Parameters:", 
-#         "NOTE:", 
-#         "Please wait.",
-#         "Data for the diagnosis log:",
-#         "MSG_OH_SOD_KuehlsystemBefuellenEntlueften",
-#         "CM designation: EV_MUStd4CTSA T_001",
-#         "With this test program the following test steps will be performed:",
-#         "Service:",
-#         "CM designation:",
-#         "Action:",
-#         "Ignition cycle:",
-#         "- Switch on the ignition.",
-#         "Result: OK",
-#         "MSG_OT_SOD"
-#     ]
-    
-    # for i, line in enumerate(lines):
-    #     if re.match(r"Action:\s+Message", line.strip()):
-    #         if i + 1 < len(lines):
-    #             next_line = lines[i + 1].strip()
-    #             next_line = lines[i + 1].strip()
-    #             if next_line and not re.match(r"Action:\s+Message", next_line) and not any(phrase in next_line for phrase in ignore_phrases):
-    #                 action_messages.add(next_line)
-    # return list(action_messages)
-
-# Function to preprocess the log
 def preprocess_gff_log(text):
     vehicle_details = extract_vehicle_details(text)
     action_messages = extract_action_messages(text)
-    matching_successful = []
-    matching_unsuccessful = []
-    
+    successful_messages = []
+    unsuccessful_messages = []
+    neutral_messages = []
+
     for msg in action_messages:
         matched = False
         # Check for successful verbiage
         for verbiage in SUCCESSFUL_VERBIAGE:
             if verbiage.lower().strip() in msg.lower():
-                matching_successful.append(msg)
+                successful_messages.append(msg)
                 matched = True
-                break  # No need to check unsuccessful verbiage if it's already successful
-                
-        # If not successful, check for unsuccessful verbiage
+                break
         if not matched:
+            # Check for unsuccessful verbiage
             for verbiage in UNSUCCESSFUL_VERBIAGE:
                 if verbiage.lower().strip() in msg.lower():
-                    matching_unsuccessful.append(msg)
+                    unsuccessful_messages.append(msg)
+                    matched = True
                     break
-    
-    return vehicle_details, action_messages, matching_successful, matching_unsuccessful
+        if not matched:
+            neutral_messages.append(msg)
+    return vehicle_details, successful_messages, unsuccessful_messages, neutral_messages
 
-# Streamlit UI for file upload and processing
 def main():
     st.title("GFF Log Processor")
 
@@ -169,7 +118,7 @@ def main():
         if gff_log_text:
             st.subheader("Extracted Vehicle Details and Action Messages")
             
-            vehicle_details, action_messages, matching_successful, matching_unsuccessful = preprocess_gff_log(gff_log_text)
+            vehicle_details, successful_messages, unsuccessful_messages, neutral_messages = preprocess_gff_log(gff_log_text)
 
             # Display vehicle details
             st.write("### Vehicle Details:")
@@ -178,13 +127,12 @@ def main():
             
             # Display action messages
             st.write("### Action Messages:")
-            for msg in action_messages:
-                if msg in matching_successful:
-                    st.markdown(f'<span style="background-color: lightgreen;">{msg}</span>', unsafe_allow_html=True)
-                elif msg in matching_unsuccessful:
-                    st.markdown(f'<span style="background-color: red;">{msg}</span>', unsafe_allow_html=True)
-                else:
-                    st.write(msg)
+            for msg in successful_messages:
+                st.markdown(f'<span style="background-color: lightgreen;">{msg}</span>', unsafe_allow_html=True)
+            for msg in unsuccessful_messages:
+                st.markdown(f'<span style="background-color: red; color: white;">{msg}</span>', unsafe_allow_html=True)
+            for msg in neutral_messages:
+                st.write(msg)
         else:              
             st.error("Failed to extract text from the GFF log PDF file.")
 

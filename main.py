@@ -45,7 +45,7 @@ def extract_action_messages(text):
         "Test step:", 
         "Please wait...", 
         "NO NOTE", 
-        "- Note the following boundary conditions:", 
+        "Note the following boundary conditions:", 
         "Parameters:", 
         "NOTE:", 
         "Please wait.",
@@ -59,25 +59,48 @@ def extract_action_messages(text):
         "Ignition cycle:",
         "- Switch on the ignition.",
         "Result: OK",
-        "MSG_OT_SOD"
+        "MSG_OT_SOD",
+        "Version:",
+        "Date:"
     ]
+    
+    current_control_module = None
+    current_job_status = None
 
     for i, line in enumerate(lines):
-        if re.match(r"Action:\s+Message", line.strip()):
+        line_stripped = line.strip()
+
+        # Update current control module
+        control_module_match = re.match(r"Control module:\s*(.+)", line_stripped)
+        if control_module_match:
+            current_control_module = control_module_match.group(1)
+
+        # Update current job status
+        job_status_match = re.match(r"Job status:\s*(.+)", line_stripped)
+        if job_status_match:
+            current_job_status = job_status_match.group(1)
+
+        # Check for action message
+        if re.match(r"Action:\s+Message", line_stripped):
             # Capture the next two lines
             message_lines = []
             for j in range(1, 3):  # Get next two lines
                 if i + j < len(lines):
                     next_line = lines[i + j].strip()
-                    # Normalize the text by removing unwanted characters
+                    # Normalize the text
                     next_line = next_line.replace('-', '').strip()
                     # Filter out unwanted messages
-                    if next_line and not any(phrase in next_line for phrase in ignore_phrases):
+                    if next_line and not any(phrase.lower() in next_line.lower() for phrase in ignore_phrases):
                         message_lines.append(next_line)
             if message_lines:
                 # Combine the message lines
                 full_message = ' '.join(message_lines)
-                action_messages.append(full_message)
+                # Store the message with associated control module and job status
+                action_messages.append({
+                    'message': full_message,
+                    'control_module': current_control_module,
+                    'job_status': current_job_status
+                })
     return action_messages
 
 def preprocess_gff_log(text):
@@ -87,23 +110,24 @@ def preprocess_gff_log(text):
     unsuccessful_messages = []
     neutral_messages = []
 
-    for msg in action_messages:
+    for item in action_messages:
+        msg = item['message']
         matched = False
         # Check for successful verbiage
         for verbiage in SUCCESSFUL_VERBIAGE:
             if verbiage.lower().strip() in msg.lower():
-                successful_messages.append(msg)
+                successful_messages.append(item)
                 matched = True
                 break
         if not matched:
             # Check for unsuccessful verbiage
             for verbiage in UNSUCCESSFUL_VERBIAGE:
                 if verbiage.lower().strip() in msg.lower():
-                    unsuccessful_messages.append(msg)
+                    unsuccessful_messages.append(item)
                     matched = True
                     break
         if not matched:
-            neutral_messages.append(msg)
+            neutral_messages.append(item)
     return vehicle_details, successful_messages, unsuccessful_messages, neutral_messages
 
 def main():
@@ -117,23 +141,38 @@ def main():
 
         if gff_log_text:
             st.subheader("Extracted Vehicle Details and Action Messages")
-            
+
             vehicle_details, successful_messages, unsuccessful_messages, neutral_messages = preprocess_gff_log(gff_log_text)
 
             # Display vehicle details
             st.write("### Vehicle Details:")
             for key, value in vehicle_details.items():
                 st.write(f"**{key}:** {value}")
-            
-            # Display action messages
+
+            # Display action messages with highlighting and associated control module and job status
             st.write("### Action Messages:")
-            for msg in successful_messages:
-                st.markdown(f'<span style="background-color: lightgreen;">{msg}</span>', unsafe_allow_html=True)
-            for msg in unsuccessful_messages:
-                st.markdown(f'<span style="background-color: red; color: white;">{msg}</span>', unsafe_allow_html=True)
-            for msg in neutral_messages:
-                st.write(msg)
-        else:              
+            for item in successful_messages:
+                msg = item['message']
+                control_module = item['control_module'] or 'N/A'
+                job_status = item['job_status'] or 'N/A'
+                st.markdown(
+                    f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">'
+                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**'
+                    f'</div>', unsafe_allow_html=True)
+            for item in unsuccessful_messages:
+                msg = item['message']
+                control_module = item['control_module'] or 'N/A'
+                job_status = item['job_status'] or 'N/A'
+                st.markdown(
+                    f'<div style="background-color: #f8d7da; padding: 10px; border-radius: 5px;">'
+                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**'
+                    f'</div>', unsafe_allow_html=True)
+            for item in neutral_messages:
+                msg = item['message']
+                control_module = item['control_module'] or 'N/A'
+                job_status = item['job_status'] or 'N/A'
+                st.write(f'{msg} for Control Module: **{control_module}**\nJob Status: **{job_status}**')
+        else:
             st.error("Failed to extract text from the GFF log PDF file.")
 
 if __name__ == '__main__':

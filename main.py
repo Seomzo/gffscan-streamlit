@@ -63,7 +63,7 @@ def extract_action_messages(text):
         "Version:",
         "Date:"
     ]
-    
+
     current_control_module = None
     current_job_status = None
 
@@ -149,31 +149,46 @@ def main():
             for key, value in vehicle_details.items():
                 st.write(f"**{key}:** {value}")
 
-            # Display action messages with highlighting and associated control module and job status
+            # Display action messages with highlighting only on the action message
             st.write("### Action Messages:")
             for item in successful_messages:
                 msg = item['message']
                 control_module = item['control_module'] or 'N/A'
                 job_status = item['job_status'] or 'N/A'
+
+                # Highlight only the action message
+                highlighted_msg = f'<span style="background-color: #d4edda;">{msg}</span>'
+
                 st.markdown(
-                    f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">'
-                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**'
-                    f'</div>', unsafe_allow_html=True)
+                    f'{highlighted_msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
+                    unsafe_allow_html=True
+                )
+
             for item in unsuccessful_messages:
                 msg = item['message']
                 control_module = item['control_module'] or 'N/A'
                 job_status = item['job_status'] or 'N/A'
+
+                # Highlight only the action message
+                highlighted_msg = f'<span style="background-color: #f8d7da;">{msg}</span>'
+
                 st.markdown(
-                    f'<div style="background-color: #f8d7da; padding: 10px; border-radius: 5px;">'
-                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**'
-                    f'</div>', unsafe_allow_html=True)
+                    f'{highlighted_msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
+                    unsafe_allow_html=True
+                )
+
             for item in neutral_messages:
                 msg = item['message']
                 control_module = item['control_module'] or 'N/A'
                 job_status = item['job_status'] or 'N/A'
-                st.write(f'{msg} for Control Module: **{control_module}**\nJob Status: **{job_status}**')
+
+                # Display without highlighting
+                st.markdown(
+                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
+                    unsafe_allow_html=True
+                )
         else:
             st.error("Failed to extract text from the GFF log PDF file.")
-
+            
 if __name__ == '__main__':
     main()

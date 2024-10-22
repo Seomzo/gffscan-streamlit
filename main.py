@@ -184,11 +184,28 @@ def preprocess_gff_log(text):
 def main():
     st.title("GFF Log Processor")
 
-    # Upload the PDF file
-    uploaded_file = st.file_uploader("Upload GFF log PDF", type="pdf")
+    # Initialize session state variables
+    if 'submitted' not in st.session_state:
+        st.session_state.submitted = False
 
-    if uploaded_file is not None:
-        gff_log_text = extract_text_from_pdf(uploaded_file)
+    if 'uploaded_file' not in st.session_state:
+        st.session_state.uploaded_file = None
+
+    # Use a form to group the file uploader and submit button
+    with st.form(key='gff_form'):
+        uploaded_file = st.file_uploader("Upload GFF log PDF", type="pdf")
+        submit_button = st.form_submit_button(label='Submit')
+
+    if submit_button:
+        if uploaded_file is not None:
+            st.session_state.uploaded_file = uploaded_file
+            st.session_state.submitted = True
+        else:
+            st.error("Please upload a GFF log PDF file before submitting.")
+
+    # Process the file if submitted
+    if st.session_state.submitted:
+        gff_log_text = extract_text_from_pdf(st.session_state.uploaded_file)
 
         if gff_log_text:
             st.subheader("Extracted Vehicle Details and Action Messages")
@@ -240,6 +257,13 @@ def main():
                 )
         else:
             st.error("Failed to extract text from the GFF log PDF file.")
+
+        # Add a "Try Another" button
+        if st.button("Try Another"):
+            # Reset session state variables
+            st.session_state.submitted = False
+            st.session_state.uploaded_file = None
+            st.experimental_rerun()
 
 if __name__ == '__main__':
     main()

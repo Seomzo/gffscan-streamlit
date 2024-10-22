@@ -109,7 +109,10 @@ def extract_action_messages(text):
         "Version:",
         "Date:",
         "https://www.vwhub.com/gff",
-        "Please wait"
+        "Please wait",
+        "Please leave the ignition switched off... ",
+        "The ignition is switched on...",
+        "The ignition is switched off..."
     ]
 
     current_control_module = None

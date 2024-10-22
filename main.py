@@ -61,7 +61,9 @@ def extract_action_messages(text):
         "Result: OK",
         "MSG_OT_SOD",
         "Version:",
-        "Date:"
+        "Date:",
+        "https://www.vwhub.com/gff",
+        "Please wait"
     ]
 
     current_control_module = None
@@ -189,6 +191,6 @@ def main():
                 )
         else:
             st.error("Failed to extract text from the GFF log PDF file.")
-            
+
 if __name__ == '__main__':
     main()

@@ -20,22 +20,68 @@ def extract_text_from_pdf(pdf_file):
         st.error(f"Error reading PDF file: {e}")
         return None
 
+# def extract_vehicle_details(text):
+#     vehicle_details = {}
+#     patterns = {
+#         'Brand': r"Brand:\s*(.+)",
+#         'Status': r"Status:\s*(.+)",
+#         'Model Year': r"Model year:\s*(.+)",
+#         'VIN': r"VIN.*?:\s*([A-Z0-9]+)",
+#         'Engine': r"Engine code:\s*(.+)",
+#         'Odometer Reading': r"Odometer reading \(km\):\s*([0-9]+)",
+#         'Time Required (TU)': r"Time required \(TU\):\s*(.+)",
+#         'Log Status': r"Log status:\s*(.+)"
+#     }
+#     for key, pattern in patterns.items():
+#         match = re.search(pattern, text)
+#         if match:
+#             vehicle_details[key] = match.group(1).strip()
+#     return vehicle_details
+
 def extract_vehicle_details(text):
     vehicle_details = {}
-    patterns = {
-        'Brand': r"Brand:\s*(.+)",
-        'Type': r"Type:\s*(.+)",
-        'Model Year': r"Model year:\s*(.+)",
-        'VIN': r"VIN.*?:\s*([A-Z0-9]+)",
-        'Engine': r"Engine code:\s*(.+)",
-        'Odometer Reading': r"Odometer reading \(km\):\s*([0-9]+)",
-        'Time Required (TU)': r"Time required \(TU\):\s*(.+)",
-        'Log Status': r"Log status:\s*(.+)"
-    }
-    for key, pattern in patterns.items():
-        match = re.search(pattern, text)
-        if match:
-            vehicle_details[key] = match.group(1).strip()
+
+    # Extract Brand
+    brand_match = re.search(r"Brand:\s*(.+)", text)
+    if brand_match:
+        vehicle_details['Brand'] = brand_match.group(1).strip()
+    
+    # Extract Type
+    type_match = re.search(r"Type:\s*(.+)", text)
+    if type_match:
+        vehicle_details['Type'] = type_match.group(1).strip()
+    
+    # Extract Model/Year
+    model_year_match = re.search(r"Model year:\s*(.+)", text)
+    if model_year_match:
+        vehicle_details['Model Year'] = model_year_match.group(1).strip()
+
+    # Extract VIN
+    vin_match = re.search(r"VIN.*?:\s*([A-Z0-9]+)", text)
+    if vin_match:
+        vehicle_details['VIN'] = vin_match.group(1).strip()
+
+    # Extract Engine
+    engine_match = re.search(r"Engine code:\s*(.+)", text)
+    if engine_match:
+        vehicle_details['Engine'] = engine_match.group(1).strip()
+
+    # Extract Odometer Reading
+    odometer_match = re.search(r"Odometer reading \(km\):\s*([0-9]+)", text)
+    if odometer_match:
+        vehicle_details['Odometer Reading'] = odometer_match.group(1).strip()
+
+    # Extract Time Required
+    time_required_match = re.search(r"Time required \(TU\):\s*(.+)", text)
+    if time_required_match:
+        vehicle_details['Time Required (TU)'] = time_required_match.group(1).strip()
+    
+    # extract log status
+    log_status_match = re.search(r"Log status:\s*(.+)", text)
+    if log_status_match:
+        vehicle_details['Log Status'] = log_status_match.group(1).strip()
+
+
     return vehicle_details
 
 def extract_action_messages(text):

@@ -161,45 +161,7 @@ def extract_action_messages(text: str):
                 })
 
     return action_messages
-    # for i, line in enumerate(lines):
-    #     line_stripped = line.strip()
 
-    #     test_step_match = re.match(r"Test step:\s*(.+)", line_stripped)
-    #     if test_step_match:
-    #         current_test_step = test_step_match.group(1).strip()
-        
-    #     # End of a test section
-    #     if line_stripped.startswith("Test step: Return"):
-    #         current_test_step = None
-
-    #     # Capture job status within a control module block
-    #     if "Control module communication (UDS)" in line_stripped:
-    #         for j in range(i + 1, min(i + 6, len(lines))):  # Scan next few lines for status
-    #             job_status_match = re.search(r"Job Status:\s*(.+)", lines[j])
-    #             if job_status_match:
-    #                 current_job_status = job_status_match.group(1).strip()
-
-    #     # Check for action messages
-    #     if re.match(r"Action:\s+Message", line_stripped):
-    #         message_lines = []
-    #         for j in range(1, 4):  # Get up to the next three lines
-    #             if i + j < len(lines):
-    #                 next_line = lines[i + j].strip()
-    #                 if not any(phrase.lower() in next_line.lower() for phrase in ignore_phrases):
-    #                     message_lines.append(next_line)
-
-    #         if message_lines:
-    #             # Combine the message lines
-    #             full_message = ' '.join(message_lines)
-
-    #             # Store the message with associated test step and job status
-    #             action_messages.append({
-    #                 'message': full_message,
-    #                 'test_step': current_test_step if current_test_step else "Unknown",
-    #                 'job_status': current_job_status
-    #             })
-
-    # return action_messages
 
 def preprocess_gff_log(text: str, successful_verbiage, unsuccessful_verbiage):
     vehicle_details = extract_vehicle_details(text)

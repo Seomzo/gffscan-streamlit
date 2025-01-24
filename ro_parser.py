@@ -3,7 +3,7 @@ from openai import OpenAI
 import streamlit as st
 import json
 
-api_key = st.secrets["OPENAI_API_KEY"]
+api_key = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
 
 def parse_ro_with_llm(ro_text: str) -> list:
     """

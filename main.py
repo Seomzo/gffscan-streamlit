@@ -1,268 +1,143 @@
 import os
 import re
 import streamlit as st
-from PyPDF2 import PdfReader
+from ro_parser import parse_ro_with_llm
+from onetime_use_parts import SNIPPETS
+from snippets_util import build_snippets_dict, find_best_snippet_for_parts, normalize_part_number
+
+# Import the new logic from gff_processor
+from gff_processor import extract_text_from_pdf, preprocess_gff_log
+
 
 # Load verbiage from secrets
 SUCCESSFUL_VERBIAGE = st.secrets["verbiage"]["successful_verbiage"]
 UNSUCCESSFUL_VERBIAGE = st.secrets["verbiage2"]["unsuccessful_verbiage"]
 
-def extract_text_from_pdf(pdf_file):
-    try:
-        pdf = PdfReader(pdf_file)
-        text = ""
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-        return text
-    except Exception as e:
-        st.error(f"Error reading PDF file: {e}")
-        return None
-
-# def extract_vehicle_details(text):
-#     vehicle_details = {}
-#     patterns = {
-#         'Brand': r"Brand:\s*(.+)",
-#         'Status': r"Status:\s*(.+)",
-#         'Model Year': r"Model year:\s*(.+)",
-#         'VIN': r"VIN.*?:\s*([A-Z0-9]+)",
-#         'Engine': r"Engine code:\s*(.+)",
-#         'Odometer Reading': r"Odometer reading \(km\):\s*([0-9]+)",
-#         'Time Required (TU)': r"Time required \(TU\):\s*(.+)",
-#         'Log Status': r"Log status:\s*(.+)"
-#     }
-#     for key, pattern in patterns.items():
-#         match = re.search(pattern, text)
-#         if match:
-#             vehicle_details[key] = match.group(1).strip()
-#     return vehicle_details
-
-def extract_vehicle_details(text):
-    vehicle_details = {}
-
-    # Extract Brand
-    brand_match = re.search(r"Brand:\s*(.+)", text)
-    if brand_match:
-        vehicle_details['Brand'] = brand_match.group(1).strip()
-    
-    # Extract Type
-    type_match = re.search(r"Type:\s*(.+)", text)
-    if type_match:
-        vehicle_details['Type'] = type_match.group(1).strip()
-    
-    # Extract Model/Year
-    model_year_match = re.search(r"Model year:\s*(.+)", text)
-    if model_year_match:
-        vehicle_details['Model Year'] = model_year_match.group(1).strip()
-
-    # Extract VIN
-    vin_match = re.search(r"VIN.*?:\s*([A-Z0-9]+)", text)
-    if vin_match:
-        vehicle_details['VIN'] = vin_match.group(1).strip()
-
-    # Extract Engine
-    engine_match = re.search(r"Engine code:\s*(.+)", text)
-    if engine_match:
-        vehicle_details['Engine'] = engine_match.group(1).strip()
-
-    # Extract Odometer Reading
-    odometer_match = re.search(r"Odometer reading \(km\):\s*([0-9]+)", text)
-    if odometer_match:
-        vehicle_details['Odometer Reading'] = odometer_match.group(1).strip()
-
-    # Extract Time Required
-    time_required_match = re.search(r"Time required \(TU\):\s*(.+)", text)
-    if time_required_match:
-        vehicle_details['Time Required (TU)'] = time_required_match.group(1).strip()
-    
-    # extract log status
-    log_status_match = re.search(r"Log status:\s*(.+)", text)
-    if log_status_match:
-        vehicle_details['Log Status'] = log_status_match.group(1).strip()
-
-
-    return vehicle_details
-
-def extract_action_messages(text):
-    action_messages = []
-    lines = text.splitlines()
-    ignore_phrases = [
-        "Test step:", 
-        "Please wait...", 
-        "NO NOTE", 
-        "Note the following boundary conditions:", 
-        "Parameters:", 
-        "NOTE:", 
-        "Please wait.",
-        "Data for the diagnosis log:",
-        "MSG_OH_SOD_KuehlsystemBefuellenEntlueften",
-        "CM designation: EV_MUStd4CTSA T_001",
-        "With this test program the following test steps will be performed:",
-        "Service:",
-        "CM designation:",
-        "Action:",
-        "Ignition cycle:",
-        "- Switch on the ignition.",
-        "Result: OK",
-        "MSG_OT_SOD",
-        "Version:",
-        "Date:",
-        "https://www.vwhub.com/gff",
-        "Please wait",
-        "Please leave the ignition switched",
-        "The ignition is switched on...",
-        "The ignition is switched off..."
-    ]
-
-    current_control_module = None
-    current_job_status = None
-
-    for i, line in enumerate(lines):
-        line_stripped = line.strip()
-
-        # Update current control module
-        control_module_match = re.match(r"Control module:\s*(.+)", line_stripped)
-        if control_module_match:
-            current_control_module = control_module_match.group(1)
-
-        # Update current job status
-        job_status_match = re.match(r"Job status:\s*(.+)", line_stripped)
-        if job_status_match:
-            current_job_status = job_status_match.group(1)
-
-        # Check for action message
-        if re.match(r"Action:\s+Message", line_stripped):
-            # Capture the next two lines
-            message_lines = []
-            for j in range(1, 3):  # Get next two lines
-                if i + j < len(lines):
-                    next_line = lines[i + j].strip()
-                    # Normalize the text
-                    next_line = next_line.replace('-', '').strip()
-                    # Filter out unwanted messages
-                    if next_line and not any(phrase.lower() in next_line.lower() for phrase in ignore_phrases):
-                        message_lines.append(next_line)
-            if message_lines:
-                # Combine the message lines
-                full_message = ' '.join(message_lines)
-                # Store the message with associated control module and job status
-                action_messages.append({
-                    'message': full_message,
-                    'control_module': current_control_module,
-                    'job_status': current_job_status
-                })
-    return action_messages
-
-def preprocess_gff_log(text):
-    vehicle_details = extract_vehicle_details(text)
-    action_messages = extract_action_messages(text)
-    successful_messages = []
-    unsuccessful_messages = []
-    neutral_messages = []
-
-    for item in action_messages:
-        msg = item['message']
-        matched = False
-        # Check for successful verbiage
-        for verbiage in SUCCESSFUL_VERBIAGE:
-            if verbiage.lower().strip() in msg.lower():
-                successful_messages.append(item)
-                matched = True
-                break
-        if not matched:
-            # Check for unsuccessful verbiage
-            for verbiage in UNSUCCESSFUL_VERBIAGE:
-                if verbiage.lower().strip() in msg.lower():
-                    unsuccessful_messages.append(item)
-                    matched = True
-                    break
-        if not matched:
-            neutral_messages.append(item)
-    return vehicle_details, successful_messages, unsuccessful_messages, neutral_messages
+# Build snippet->required_parts
+ALL_SNIPPET_PARTS = build_snippets_dict(SNIPPETS)
 
 def main():
-    st.title("GFF Log Processor")
+    st.title("Claims Processing Tool (Prototype)")
 
-    # Initialize session state variables
+    # Session states
     if 'submitted' not in st.session_state:
         st.session_state.submitted = False
-
     if 'uploaded_file' not in st.session_state:
         st.session_state.uploaded_file = None
+    if 'uploaded_ro' not in st.session_state:
+        st.session_state.uploaded_ro = None
 
-    # Use a form to group the file uploader and submit button
     with st.form(key='gff_form'):
-        uploaded_file = st.file_uploader("Upload GFF log PDF", type="pdf")
+        uploaded_gff = st.file_uploader("Upload GFF log PDF", type="pdf")
+        uploaded_ro = st.file_uploader("Upload RO PDF", type="pdf")
         submit_button = st.form_submit_button(label='Submit')
 
     if submit_button:
-        if uploaded_file is not None:
-            st.session_state.uploaded_file = uploaded_file
+        st.session_state.uploaded_ro = uploaded_ro
+        st.session_state.uploaded_file = uploaded_gff
+        if uploaded_gff:
             st.session_state.submitted = True
         else:
             st.error("Please upload a GFF log PDF file before submitting.")
 
-    # Process the file if submitted
     if st.session_state.submitted:
         gff_log_text = extract_text_from_pdf(st.session_state.uploaded_file)
-
         if gff_log_text:
             st.subheader("Extracted Vehicle Details and Action Messages")
 
-            vehicle_details, successful_messages, unsuccessful_messages, neutral_messages = preprocess_gff_log(gff_log_text)
+            vehicle_details, success_msgs, fail_msgs, neutral_msgs = preprocess_gff_log(
+                gff_log_text,
+                SUCCESSFUL_VERBIAGE,
+                UNSUCCESSFUL_VERBIAGE
+            )
 
             # Display vehicle details
             st.write("### Vehicle Details:")
-            for key, value in vehicle_details.items():
-                st.write(f"**{key}:** {value}")
+            for k, v in vehicle_details.items():
+                st.write(f"**{k}:** {v}")
 
-            # Display action messages with highlighting only on the action message
+            # Display action messages
             st.write("### Action Messages:")
-            for item in successful_messages:
-                msg = item['message']
-                control_module = item['control_module'] or 'N/A'
-                job_status = item['job_status'] or 'N/A'
 
-                # Highlight only the action message
-                highlighted_msg = f'<span style="background-color: #d4edda;">{msg}</span>'
+            def display_messages(messages, color):
+                for item in messages:
+                    msg = item['message']
+                    test_step = item.get('test_step', 'Unknown')
+                    job_status = item.get('job_status', 'N/A')
+                    highlighted_msg = f'<span style="background-color: {color}; padding: 5px;">{msg}</span>'
+                    st.markdown(
+                        f'{highlighted_msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
+                        unsafe_allow_html=True
+                    )
 
-                st.markdown(
-                    f'{highlighted_msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
-                    unsafe_allow_html=True
-                )
+            # Show successful and unsuccessful messages
+            display_messages(success_msgs, '#098215')  # Green for successful
+            display_messages(fail_msgs, '#f8d7da')  # Red for unsuccessful
 
-            for item in unsuccessful_messages:
-                msg = item['message']
-                control_module = item['control_module'] or 'N/A'
-                job_status = item['job_status'] or 'N/A'
+            # Collapsible dropdown for all messages
+            with st.expander("See All Messages"):
+                st.write("### All Action Messages:")
+                all_messages = success_msgs + fail_msgs + neutral_msgs
 
-                # Highlight only the action message
-                highlighted_msg = f'<span style="background-color: #f8d7da;">{msg}</span>'
-
-                st.markdown(
-                    f'{highlighted_msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
-                    unsafe_allow_html=True
-                )
-
-            for item in neutral_messages:
-                msg = item['message']
-                control_module = item['control_module'] or 'N/A'
-                job_status = item['job_status'] or 'N/A'
-
-                # Display without highlighting
-                st.markdown(
-                    f'{msg} for Control Module: **{control_module}**<br>Job Status: **{job_status}**',
-                    unsafe_allow_html=True
-                )
+                for item in all_messages:
+                    msg = item['message']
+                    test_step = item.get('test_step', 'Unknown')
+                    job_status = item.get('job_status', 'N/A')
+                    st.markdown(
+                        f'{msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
+                        unsafe_allow_html=True
+                    )
         else:
             st.error("Failed to extract text from the GFF log PDF file.")
 
-        # Add a "Try Another" button
+        # Process the RO (Repair Order)
+        if st.session_state.uploaded_ro is not None:
+            ro_text = extract_text_from_pdf(st.session_state.uploaded_ro)
+            if ro_text:
+                st.subheader("Repair Order - Parts Validation")
+                st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
+
+                jobs_data = parse_ro_with_llm(ro_text)
+                if not jobs_data:
+                    st.warning("No jobs or parts were detected by the LLM from this RO.")
+                else:
+                    # Display extracted job name, description, and parts
+                    for job_dict in jobs_data:
+                        job_name = job_dict.get("job_name", "Unknown Job")
+                        description = job_dict.get("Description", "No Description Available")
+                        replaced_parts = job_dict.get('parts', [])
+
+                        st.write(f"**LLM-Extracted Job Name:** {job_name}")
+                        st.write(f"**Description:** {description}")
+                        st.write("**Replaced Parts (LLM extracted):**")
+                        if replaced_parts:
+                            for p in replaced_parts:
+                                st.write(f"- {p}")
+                        else:
+                            st.write("*No parts found for this job.*")
+
+                        # Attempt to find the best matching snippet
+                        best_snippet, overlap = find_best_snippet_for_parts(replaced_parts, ALL_SNIPPET_PARTS)
+
+                        if best_snippet:
+                            st.write(f"**Identified Snippet:** {best_snippet} (overlap={overlap})")
+                            required_set = ALL_SNIPPET_PARTS[best_snippet]
+                            replaced_norm = set(normalize_part_number(rp) for rp in replaced_parts)
+                            missing = required_set - replaced_norm
+                            if missing:
+                                st.error(f"Missing parts: {missing}")
+                            else:
+                                st.success("All required parts are present for this snippet!")
+                        else:
+                            st.warning("Could not match replaced parts to any known snippet. Overlap=0")
+
+            else:
+                st.error("Failed to extract text from the RO PDF.")
+
         if st.button("Try Another"):
-            # Reset session state variables
             st.session_state.submitted = False
             st.session_state.uploaded_file = None
+            st.session_state.uploaded_ro = None
             st.experimental_rerun()
 
 if __name__ == '__main__':

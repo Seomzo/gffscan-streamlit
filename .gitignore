@@ -1,3 +1,4 @@
 .streamlit/
 .vscode/
 venv/
+__pycache__

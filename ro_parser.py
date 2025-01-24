@@ -3,7 +3,7 @@ from openai import OpenAI
 import streamlit as st
 import json
 
-api_key = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
+KEY = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
 
 def parse_ro_with_llm(ro_text: str) -> list:
     """
@@ -11,7 +11,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
     Returns a list of dicts: [{'job_name': '...', 'parts': [...]}], or [] if none found.
     """
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=KEY)
     
     print("\n[DEBUG] parse_ro_with_llm:")
     print(f"    RO text sample (first 500 chars): {ro_text[:500]!r}")

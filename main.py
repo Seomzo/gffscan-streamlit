@@ -35,104 +35,98 @@ def main():
     if submit_button:
         st.session_state.uploaded_ro = uploaded_ro
         st.session_state.uploaded_file = uploaded_gff
-        if uploaded_gff:
-            st.session_state.submitted = True
-        else:
-            st.error("Please upload a GFF log PDF file before submitting.")
+        st.session_state.submitted = True
 
-    if st.session_state.submitted:
-        gff_log_text = extract_text_from_pdf(st.session_state.uploaded_file)
-        if gff_log_text:
-            st.subheader("Extracted Vehicle Details and Action Messages")
+        if st.session_state.submitted:
+            if st.session_state.uploaded_file is not None:
+                # Process GFF log if uploaded
+                gff_log_text = extract_text_from_pdf(st.session_state.uploaded_file)
+                if gff_log_text:
+                    st.subheader("Extracted Vehicle Details and Action Messages")
 
-            vehicle_details, success_msgs, fail_msgs, neutral_msgs = preprocess_gff_log(
-                gff_log_text,
-                SUCCESSFUL_VERBIAGE,
-                UNSUCCESSFUL_VERBIAGE
-            )
-
-            # Display vehicle details
-            st.write("### Vehicle Details:")
-            for k, v in vehicle_details.items():
-                st.write(f"**{k}:** {v}")
-
-            # Display action messages
-            st.write("### Action Messages:")
-
-            def display_messages(messages, color):
-                for item in messages:
-                    msg = item['message']
-                    test_step = item.get('test_step', 'Unknown')
-                    job_status = item.get('job_status', 'N/A')
-                    highlighted_msg = f'<span style="background-color: {color}; padding: 5px;">{msg}</span>'
-                    st.markdown(
-                        f'{highlighted_msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
-                        unsafe_allow_html=True
+                    vehicle_details, success_msgs, fail_msgs, neutral_msgs = preprocess_gff_log(
+                        gff_log_text, SUCCESSFUL_VERBIAGE, UNSUCCESSFUL_VERBIAGE
                     )
 
-            # Show successful and unsuccessful messages
-            display_messages(success_msgs, '#098215')  # Green for successful
-            display_messages(fail_msgs, '#f8d7da')  # Red for unsuccessful
+                    # Display vehicle details
+                    st.write("### Vehicle Details:")
+                    for k, v in vehicle_details.items():
+                        st.write(f"**{k}:** {v}")
 
-            # Collapsible dropdown for all messages
-            with st.expander("See All Messages"):
-                st.write("### All Action Messages:")
-                all_messages = success_msgs + fail_msgs + neutral_msgs
+                    # Display action messages
+                    st.write("### Action Messages:")
 
-                for item in all_messages:
-                    msg = item['message']
-                    test_step = item.get('test_step', 'Unknown')
-                    job_status = item.get('job_status', 'N/A')
-                    st.markdown(
-                        f'{msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
-                        unsafe_allow_html=True
-                    )
-        else:
-            st.error("Failed to extract text from the GFF log PDF file.")
+                    def display_messages(messages, color):
+                        for item in messages:
+                            msg = item['message']
+                            test_step = item.get('test_step', 'N/A')
+                            job_status = item.get('job_status', 'N/A')
+                            highlighted_msg = f'<span style="background-color: {color}; padding: 5px;">{msg}</span>'
+                            st.markdown(
+                                f'{highlighted_msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
+                                unsafe_allow_html=True
+                            )
 
-        # Process the RO (Repair Order)
-        if st.session_state.uploaded_ro is not None:
-            ro_text = extract_text_from_pdf(st.session_state.uploaded_ro)
-            if ro_text:
-                st.subheader("Repair Order - Parts Validation")
-                st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
+                    # Show only successful and unsuccessful messages (highlighted)
+                    display_messages(success_msgs, '#098215')  # Green for successful
+                    display_messages(fail_msgs, '#f8d7da')  # Red for unsuccessful
 
-                jobs_data = parse_ro_with_llm(ro_text)
-                if not jobs_data:
-                    st.warning("No jobs or parts were detected by the LLM from this RO.")
+                    # Collapsible dropdown for all messages
+                    with st.expander("See All Messages"):
+                        st.write("### All Action Messages:")
+                        all_messages = success_msgs + fail_msgs + neutral_msgs
+
+                        for item in all_messages:
+                            msg = item['message']
+                            test_step = item.get('test_step', 'N/A')
+                            job_status = item.get('job_status', 'N/A')
+                            st.markdown(
+                                f'{msg} for Test Step: **{test_step}**<br>Job Status: **{job_status}**',
+                                unsafe_allow_html=True
+                            )
                 else:
-                    # Display extracted job name, description, and parts
-                    for job_dict in jobs_data:
-                        job_name = job_dict.get("job_name", "Unknown Job")
-                        description = job_dict.get("Description", "No Description Available")
-                        replaced_parts = job_dict.get('parts', [])
+                    st.error("Failed to extract text from the GFF log PDF file.")
 
-                        st.write(f"**LLM-Extracted Job Name:** {job_name}")
-                        st.write(f"**Description:** {description}")
-                        st.write("**Replaced Parts (LLM extracted):**")
-                        if replaced_parts:
+            if st.session_state.uploaded_ro is not None:
+                # Process the RO file if uploaded
+                ro_text = extract_text_from_pdf(st.session_state.uploaded_ro)
+                if ro_text:
+                    st.subheader("Repair Order - Parts Validation")
+                    st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
+
+                    jobs_data = parse_ro_with_llm(ro_text)
+                    if not jobs_data:
+                        st.warning("No jobs or parts were detected by the LLM from this RO.")
+                    else:
+                        for job_dict in jobs_data:
+                            job_name = job_dict.get("job_name", "Unknown Job")
+                            description = job_dict.get("Description", "No Description")
+                            replaced_parts = job_dict.get('parts', [])
+
+                            st.write(f"**LLM-Extracted Job Name:** {job_name}")
+                            st.write(f"**Job Description:** {description}")
+                            st.write("**Replaced Parts (LLM extracted):**")
                             for p in replaced_parts:
                                 st.write(f"- {p}")
-                        else:
-                            st.write("*No parts found for this job.*")
 
-                        # Attempt to find the best matching snippet
-                        best_snippet, overlap = find_best_snippet_for_parts(replaced_parts, ALL_SNIPPET_PARTS)
+                            best_snippet, overlap = find_best_snippet_for_parts(replaced_parts, ALL_SNIPPET_PARTS)
 
-                        if best_snippet:
-                            st.write(f"**Identified Snippet:** {best_snippet} (overlap={overlap})")
-                            required_set = ALL_SNIPPET_PARTS[best_snippet]
-                            replaced_norm = set(normalize_part_number(rp) for rp in replaced_parts)
-                            missing = required_set - replaced_norm
-                            if missing:
-                                st.error(f"Missing parts: {missing}")
+                            if best_snippet:
+                                st.write(f"**Identified Snippet**: {best_snippet} (overlap={overlap})")
+                                required_set = ALL_SNIPPET_PARTS[best_snippet]
+                                replaced_norm = set(normalize_part_number(rp) for rp in replaced_parts)
+                                missing = required_set - replaced_norm
+                                if missing:
+                                    st.error(f"Missing parts: {missing}")
+                                else:
+                                    st.success("All required parts are present for this snippet!")
                             else:
-                                st.success("All required parts are present for this snippet!")
-                        else:
-                            st.warning("Could not match replaced parts to any known snippet. Overlap=0")
+                                st.warning("Could not match replaced parts to any known snippet. Overlap=0")
+                else:
+                    st.error("Failed to extract text from the RO PDF.")
 
-            else:
-                st.error("Failed to extract text from the RO PDF.")
+        if st.session_state.uploaded_file is None and st.session_state.uploaded_ro is None:
+            st.error("Please upload at least one PDF (GFF log or RO file) to proceed.")
 
         if st.button("Try Another"):
             st.session_state.submitted = False

@@ -1,8 +1,9 @@
-# ro_parser.py
 
 from openai import OpenAI
 import streamlit as st
 import json
+
+api_key = st.secrets.get("OPENAI_API_KEY", {})
 
 def parse_ro_with_llm(ro_text: str) -> list:
     """
@@ -10,15 +11,12 @@ def parse_ro_with_llm(ro_text: str) -> list:
     Returns a list of dicts: [{'job_name': '...', 'parts': [...]}], or [] if none found.
     """
 
-    # 1) Create the OpenAI client object
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]["api_key"])
+    client = OpenAI(api_key=api_key)
     
-    # 2) Debug: Print the first part of the text to ensure it's read correctly
     print("\n[DEBUG] parse_ro_with_llm:")
     print(f"    RO text sample (first 500 chars): {ro_text[:500]!r}")
     print(f"    RO text length: {len(ro_text)}")
 
-    # 3) Build the prompt
     prompt = f"""
     You are an expert at reading vehicle repair orders (RO).
     Extract the parts and list them in json format.

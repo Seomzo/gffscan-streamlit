@@ -471,5 +471,84 @@ Required Parts / Description / Quantity:
   - 8E0 260 749* / Seal Ring / 1
   - WHT 000 729* / Noise Insulation bolts / 3
   - ZVP000134YF / Refrigerant / As needed
+""",
+
+    # 11) Valve Stem Seals
+    "Valve Stem Seals (Tiguan DGUA)": """
+Sheet: Valve Stem Seals
+Causal Part Number: 06K109675* (Service Number 1563)
+Year Range: 2018–2021
+Model: Tiguan
+Engine Code: DGUA
+
+GFF Required Keywords = Coolant Drain/Fill/Bleed, Chain Length Adaptation
+
+Required Parts / Description / Quantity:
+
+  - 06H 103 121* / Vacuum Pump Gasket / 1
+  - 06K 103 484* / Oil Separator Gasket / 1
+  - 06K 109 210* / Lower Timing Cover / 1
+  - 06K 109 675 / Inlet Valve Stem Seal / 8
+  - 06K 109 675* / Outlet Valve Stem Seal / 8
+  - 06L 103 801 / Drain plug with gasket / 1
+  - D 174 003 M2 / Sealant / 1
+  - G 02001BS0 or G 02001QS0 or G 02001DS0 / Engine Oil 0W-20 / As Required
+  - G 12E 100 S1 / Coolant / As Needed
+  - N 101 562 06 / Bolts at the bottom of cylinder head / 2
+  - N 105 524 04 / Engine Mount Bolt / 2
+  - N 105 540 05 / Cylinder Head Cover Bolts / 22
+  - N 107 002 01 / High Pressure Fuel Pump Bolts / 2
+  - N 107 015 01 / Engine Support Bolt / 3
+  - N 107 069 01 / Engine Mount Bolt / 1
+  - N 107 148 02 / Lifting Bracket Screw / 2
+  - N 107 512 01 / Cam Adjustment Valve Bolts (N205 & N318) / 2
+  - N 107 663 01 / Serpentine Belt Tensioner Bolt / 1
+  - N 909 865 01 / Spring Clip / 1
+  - N 910 296 02 / Engine Mount Bolt / 1
+  - N 910 967 02 / Lower Timing Cover Bolts / 15
+  - N 910 568 01 / Oil Pressure Regulation Valve N428 O-Ring / 1
+  - N 911 736 01 / Oil Pressure Regulation Valve N428 Bolt / 1
+  - N 912 040 01 / Engine Mount Bolt / 1
+  - N 912 328 01 / Camshaft Bearing Bracket Bolts / 6
+  - WHT 003 463 / Dipstick Tube O-Ring / 1
+  - WHT 007 212* / Camshaft Bearing Bracket O Rings / 2
+  - WHT 009 475 / Vibration Damper Bolt / 1
+""",
+
+    # 12) Overhead Console
+    "Overhead Console (Tiguan)": """
+Sheet: Overhead Console
+Causal Part Number: Varies* (Service Number 7079)
+Year Range: 2019–2022
+Model: Tiguan
+
+GFF Required Keywords = 
+
+Required Parts / Description / Quantity:
+
+  - 5NN 867 591* or 5NN 868 837* or 5NN 867 489* / Overhead Console Trim (based on Model/Model Year) / 1
+  - N 90698606 / Screws / 4
+""",
+
+    # 13) Auxiliary Bracket Seal
+    "Auxiliary Bracket Seal (Tiguan DGUA)": """
+Sheet: Auxiliary Bracket Seal
+Causal Part Number: 06N115441 (Service Number 1734)
+Year Range: 2018–2021
+Model: Tiguan
+Engine Code: DGUA
+
+GFF Required Keywords = Coolant Drain/Fill/Bleed
+
+Required Parts / Description / Quantity:
+
+  - 06L 115 562* / Oil filter element with gasket / 1
+  - 06N 115 441 / Gasket / 1
+  - G 12E 100 S1 / Coolant / As Needed
+  - G 02001BS0 or G 02001QS0 or G 02001DS0 / Engine Oil 0W-20 / As Needed
+  - N 106 648 01 / Bolt / 2
+  - N 910 455 02 / Bolt / 3
+  - WHT 003 463 / Dipstick Tube Seal / 1
+  - WHT 004 973 / Connection O-Ring / 2
 """
 }

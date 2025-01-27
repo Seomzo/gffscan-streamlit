@@ -3,15 +3,15 @@ from openai import OpenAI
 import streamlit as st
 import json
 
-KEY = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
+
 
 def parse_ro_with_llm(ro_text: str) -> list:
     """
     Sends the entire ro_text to an LLM (e.g., gpt-4o-mini, GPT-4, or GPT-3.5).
     Returns a list of dicts: [{'job_name': '...', 'parts': [...]}], or [] if none found.
     """
-
-    client = OpenAI(api_key=KEY)
+    key = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
+    client = OpenAI(api_key=key)
     
     print("\n[DEBUG] parse_ro_with_llm:")
     print(f"    RO text sample (first 500 chars): {ro_text[:500]!r}")
@@ -48,7 +48,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",  # or "gpt-4", "gpt-3.5-turbo", etc.
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
             max_tokens=1500

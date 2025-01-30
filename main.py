@@ -99,23 +99,28 @@ def main():
                     vin = "Unknown"
                     mileage_in_out = "Unknown"
 
-                    # Find the line containing "Vehicle:"
+                    # Find the line containing "Vehicle"
                     for i, line in enumerate(lines):
                         if "Vehicle" in line:
-                            # Attempt to read next line as vehicle type
                             if i + 1 < len(lines):
+                                # The next line is initially the vehicle type
                                 vehicle_type_line = lines[i + 1].strip()
-                                # If it ends with '-', append the next line
+                                # If vehicle type ends with '-', merge the next line too (likely color)
                                 if vehicle_type_line.endswith('-') and (i + 2 < len(lines)):
                                     vehicle_type_line += lines[i + 2].strip()
-                                vehicle_type = vehicle_type_line
+                                    # Then the VIN is at i+3
+                                    if i + 3 < len(lines):
+                                        vin_line = lines[i + 3].strip()
+                                    else:
+                                        vin_line = "Unknown"
+                                else:
+                                    # Otherwise, VIN is presumably at i+2
+                                    if i + 2 < len(lines):
+                                        vin_line = lines[i + 2].strip()
+                                    else:
+                                        vin_line = "Unknown"
 
-                            # VIN is the next line after vehicle type
-                            if i + 2 < len(lines):
-                                vin_line = lines[i + 2].strip()
-                                # If we merged lines for type, VIN might be i+3
-                                if vehicle_type_line.endswith('-') and i + 3 < len(lines):
-                                    vin_line = lines[i + 3].strip()
+                                vehicle_type = vehicle_type_line
                                 vin = vin_line
 
                             # Find mileage line

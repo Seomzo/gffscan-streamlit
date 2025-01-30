@@ -5,6 +5,43 @@ import json
 
 key = st.secrets["OPENAI_KEY"]["OPENAI_API_KEY"]
 
+def parse_vehicle_details(ro_text: str):
+    lines = ro_text.splitlines()
+    vehicle_type = "Unknown"
+    vin = "Unknown"
+    mileage_in_out = "Unknown"
+
+    for i, line in enumerate(lines):
+        if "Vehicle" in line:
+            if i + 1 < len(lines):
+                vehicle_type_line = lines[i + 1].strip()
+                if vehicle_type_line.endswith('-') and (i + 2 < len(lines)):
+                    vehicle_type_line += lines[i + 2].strip()
+                    # Then VIN is at i+3
+                    if i + 3 < len(lines):
+                        vin_line = lines[i + 3].strip()
+                    else:
+                        vin_line = "Unknown"
+                else:
+                    # VIN is at i+2
+                    if i + 2 < len(lines):
+                        vin_line = lines[i + 2].strip()
+                    else:
+                        vin_line = "Unknown"
+                vehicle_type = vehicle_type_line
+                vin = vin_line
+
+                # Look for mileage
+                mileage_regex = re.search(
+                    r'(\d{1,3},\d{3} Mi In\s*/\s*\d{1,3},\d{3} Mi Out)',
+                    ro_text.replace('\n', ' ')
+                )
+                if mileage_regex:
+                    mileage_in_out = mileage_regex.group(1).strip()
+            break
+
+    return vehicle_type, vin, mileage_in_out
+
 
 def parse_ro_with_llm(ro_text: str) -> list:
     """

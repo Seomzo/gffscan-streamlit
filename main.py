@@ -1,7 +1,7 @@
 import os
 import re
 import streamlit as st
-from ro_parser import parse_ro_with_llm
+from ro_parser import parse_ro_with_llm, parse_vehicle_details
 from onetime_use_parts import SNIPPETS
 from snippets_util import build_snippets_dict, find_best_snippet_for_parts, normalize_part_number
 
@@ -93,44 +93,8 @@ def main():
                 if ro_text:
                     st.subheader("Repair Order - Parts Validation")
                     
-                    # Extract vehicle details from the RO
-                    lines = ro_text.splitlines()
-                    vehicle_type = "Unknown"
-                    vin = "Unknown"
-                    mileage_in_out = "Unknown"
+                    vehicle_type, vin, mileage_in_out = parse_vehicle_details(ro_text)
 
-                    # Find the line containing "Vehicle"
-                    for i, line in enumerate(lines):
-                        if "Vehicle" in line:
-                            if i + 1 < len(lines):
-                                # The next line is initially the vehicle type
-                                vehicle_type_line = lines[i + 1].strip()
-                                # If vehicle type ends with '-', merge the next line too (likely color)
-                                if vehicle_type_line.endswith('-') and (i + 2 < len(lines)):
-                                    vehicle_type_line += lines[i + 2].strip()
-                                    # Then the VIN is at i+3
-                                    if i + 3 < len(lines):
-                                        vin_line = lines[i + 3].strip()
-                                    else:
-                                        vin_line = "Unknown"
-                                else:
-                                    # Otherwise, VIN is presumably at i+2
-                                    if i + 2 < len(lines):
-                                        vin_line = lines[i + 2].strip()
-                                    else:
-                                        vin_line = "Unknown"
-
-                                vehicle_type = vehicle_type_line
-                                vin = vin_line
-
-                            # Find mileage line
-                            mileage_regex = re.search(
-                                r'(\d{1,3},\d{3} Mi In\s*/\s*\d{1,3},\d{3} Mi Out)',
-                                ro_text.replace('\n', ' ')
-                            )
-                            if mileage_regex:
-                                mileage_in_out = mileage_regex.group(1).strip()
-                            break
                     st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
 
                     # Display Vehicle Details

@@ -20,7 +20,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
     prompt = f"""
     You are an expert at reading vehicle repair orders (RO).
     Extract the parts and list them in json format.
-    example in RO demlimited by ''': '''C. MECDIAG REFERRING TO RO354148 LOW COOLANT WARNING
+    this is an example from an RO demlimited by ''': '''C. MECDIAG REFERRING TO RO354148 LOW COOLANT WARNING
     LIGHT
     Warranty Pay $0.00
     Job added by WILLIAM PERRY on Tue Nov 19, 2024 | 8:50 AM
@@ -43,22 +43,24 @@ def parse_ro_with_llm(ro_text: str) -> list:
     05E-103-474-E - VENTHOSE 1
     05E-121-119 - WASHER 1
     N-912-332-01 - HEX. NUT 3'''
-    Output should look like this:
+
+    The Output should look like this:
     "jobs": [MECDIAG], "Description": [REFERRING TO RO354148 LOW COOLANT WARNING
     LIGHT],"Tech Story":[
-    1. REPLACED COOLANT PUMP GASKET REMOVED THE AIR BOX AND AIR BOX DUCTING REMOVED THE
+    "1. REPLACED COOLANT PUMP GASKET REMOVED THE AIR BOX AND AIR BOX DUCTING REMOVED THE
     CHARGE PIPE REMOVED THE BATTERY ANED BATTERY TRAY REMOVED THE UNDER TRAY AND DRAINED
     THE COOLANT REMOVED THE FUEL LINES AND EVAP LINES REMOVED THE COOLANT LINES FROM THE
     WATER PUMP REMOVED THE VACUUM LINES FROM THE TOOTH BELT GUARD REMOVED THE TOOTH BELT
     GUARD REMOVED THE TOOTH BELT SPROCKET REMOVED THE WATER PUMP INSTALLED NEW GASKET WITH
     NEW HARDWARE TORQUED TO SPEC INSTALLED ALL PARTS IN REVERSE ORDER AND PERFORMED COOLANT
-    FILL AND BLEED
-    2. REPLACED THE TURBO PCV PIPE REMOVED THE CHARGE PIPE REMOVED THE TURBO TO PCV LINE AND
-    INSTALLED NEW LINE INSTALLED THE CHARGE PIPE WITH NEW CLIP AND O RING
-    3. COOLANT PUMP TOOTH BELT
-    4. REPLACED HEX NUTS FOR THE BALL JOINT ON THE LOWER CONTROL ARM
-    5. PERFORMED COOLANT FILL AND BLEED
-    6. GFF 191506295] "parts": ["N-908-514-01 Head Gasket 1", "N-911-455-02 Bolt 4"]
+    FILL AND BLEED",
+    "2. REPLACED THE TURBO PCV PIPE REMOVED THE CHARGE PIPE REMOVED THE TURBO TO PCV LINE AND
+    INSTALLED NEW LINE INSTALLED THE CHARGE PIPE WITH NEW CLIP AND O RING",
+    "3. COOLANT PUMP TOOTH BELT",
+    "4. REPLACED HEX NUTS FOR THE BALL JOINT ON THE LOWER CONTROL ARM",
+    "5. PERFORMED COOLANT FILL AND BLEED",
+    "6. GFF 191506295"] 
+    "parts": ["- 04E-121-605-M / TOOTH BELT / 1", "- 05E-103-474-E / VENTHOSE / 1", "- 05E-121-119 / WASHER / 1 ", "- N-912-332-01 / HEX. NUT / 3"]
     Return only valid JSON in this structure:
 
     {{
@@ -66,7 +68,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
          {{
            "job_name": "string",
            "Description": "string",
-           "Tech Story": "string",
+           "Tech Story": ["string","string",...],
            "parts": ["string","string",...]
          }},
          ...
@@ -86,7 +88,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
-            max_tokens=1500
+            max_tokens=3000
         )
 
         # 4) Debug: Show raw response from LLM

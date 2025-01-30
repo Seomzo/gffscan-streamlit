@@ -93,15 +93,39 @@ def main():
                 if ro_text:
                     st.subheader("Repair Order - Parts Validation")
                     
-                    # regex-based parsing for vehicle details:
-                    vehicle_type_match = re.search(r'(20\d{2}.*Volkswagen.*)', ro_text)
-                    vin_match = re.search(r'(WV\w+)', ro_text.replace(" ", ""))  # example handle for spaces
-                    mileage_match = re.search(r'(\d{1,3},\d{3} Mi In\s*/\s*\d{1,3},\d{3} Mi Out)', ro_text)
+                    # Extract vehicle details from the RO
+                    lines = ro_text.splitlines()
+                    vehicle_type = "Unknown"
+                    vin = "Unknown"
+                    mileage_in_out = "Unknown"
 
-                    vehicle_type = vehicle_type_match.group(1).strip() if vehicle_type_match else "Unknown"
-                    vin = vin_match.group(1) if vin_match else "Unknown"
-                    mileage_in_out = mileage_match.group(1) if mileage_match else "Unknown"
-                    
+                    # Find the line containing "Vehicle:"
+                    for i, line in enumerate(lines):
+                        if "Vehicle" in line:
+                            # Attempt to read next line as vehicle type
+                            if i + 1 < len(lines):
+                                vehicle_type_line = lines[i + 1].strip()
+                                # If it ends with '-', append the next line
+                                if vehicle_type_line.endswith('-') and (i + 2 < len(lines)):
+                                    vehicle_type_line += lines[i + 2].strip()
+                                vehicle_type = vehicle_type_line
+
+                            # VIN is the next line after vehicle type
+                            if i + 2 < len(lines):
+                                vin_line = lines[i + 2].strip()
+                                # If we merged lines for type, VIN might be i+3
+                                if vehicle_type_line.endswith('-') and i + 3 < len(lines):
+                                    vin_line = lines[i + 3].strip()
+                                vin = vin_line
+
+                            # Find mileage line
+                            mileage_regex = re.search(
+                                r'(\d{1,3},\d{3} Mi In\s*/\s*\d{1,3},\d{3} Mi Out)',
+                                ro_text.replace('\n', ' ')
+                            )
+                            if mileage_regex:
+                                mileage_in_out = mileage_regex.group(1).strip()
+                            break
                     st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
 
                     # Display Vehicle Details
@@ -110,6 +134,7 @@ def main():
                     st.write(f"**VIN:** {vin}")
                     st.write(f"**Mileage In/Out:** {mileage_in_out}")
 
+                    st.write("### RO Details:-")
 
                     jobs_data = parse_ro_with_llm(ro_text)
                     if not jobs_data:

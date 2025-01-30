@@ -60,7 +60,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
     "4. REPLACED HEX NUTS FOR THE BALL JOINT ON THE LOWER CONTROL ARM",
     "5. PERFORMED COOLANT FILL AND BLEED",
     "6. GFF 191506295"] 
-    "parts": ["- 04E-121-605-M / TOOTH BELT / 1", "- 05E-103-474-E / VENTHOSE / 1", "- 05E-121-119 / WASHER / 1 ", "- N-912-332-01 / HEX. NUT / 3"]
+    "parts": ["04E-121-605-M / TOOTH BELT / 1", "05E-103-474-E / VENTHOSE / 1", "05E-121-119 / WASHER / 1 ", "N-912-332-01 / HEX. NUT / 3"]
     Return only valid JSON in this structure:
 
     {{
@@ -68,7 +68,7 @@ def parse_ro_with_llm(ro_text: str) -> list:
          {{
            "job_name": "string",
            "Description": "string",
-           "Tech Story": ["string","string",...],
+           "tech_story": ["string","string",...],
            "parts": ["string","string",...]
          }},
          ...
@@ -114,3 +114,4 @@ def parse_ro_with_llm(ro_text: str) -> list:
     except Exception as e:
         print(f"[ERROR] parse_ro_with_llm encountered an exception: {e}")
         return []
+    

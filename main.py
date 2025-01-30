@@ -101,10 +101,14 @@ def main():
                         for job_dict in jobs_data:
                             job_name = job_dict.get("job_name", "Unknown Job")
                             description = job_dict.get("Description", "No Description")
+                            tech_story = job_dict.get("tech_story", [])
                             replaced_parts = job_dict.get('parts', [])
 
                             st.write(f"**LLM-Extracted Job Name:** {job_name}")
                             st.write(f"**Job Description:** {description}")
+                            st.write("**Tech Story:**")
+                            for story in tech_story:
+                                st.write(f"- {story}")
                             st.write("**Replaced Parts (LLM extracted):**")
                             for p in replaced_parts:
                                 st.write(f"- {p}")

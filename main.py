@@ -92,7 +92,24 @@ def main():
                 ro_text = extract_text_from_pdf(st.session_state.uploaded_ro)
                 if ro_text:
                     st.subheader("Repair Order - Parts Validation")
+                    
+                    # regex-based parsing for vehicle details:
+                    vehicle_type_match = re.search(r'(20\d{2}.*Volkswagen.*)', ro_text)
+                    vin_match = re.search(r'(WV\w+)', ro_text.replace(" ", ""))  # example handle for spaces
+                    mileage_match = re.search(r'(\d{1,3},\d{3} Mi In\s*/\s*\d{1,3},\d{3} Mi Out)', ro_text)
+
+                    vehicle_type = vehicle_type_match.group(1).strip() if vehicle_type_match else "Unknown"
+                    vin = vin_match.group(1) if vin_match else "Unknown"
+                    mileage_in_out = mileage_match.group(1) if mileage_match else "Unknown"
+                    
                     st.write(f"[DEBUG] RO text length: {len(ro_text)} characters")
+
+                    # Display Vehicle Details
+                    st.write("### Vehicle Details:-")
+                    st.write(f"**Type:** {vehicle_type}")
+                    st.write(f"**VIN:** {vin}")
+                    st.write(f"**Mileage In/Out:** {mileage_in_out}")
+
 
                     jobs_data = parse_ro_with_llm(ro_text)
                     if not jobs_data:

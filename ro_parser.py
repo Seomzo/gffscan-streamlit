@@ -57,7 +57,8 @@ def parse_ro_with_llm(ro_text: str) -> list:
 
     prompt = f"""
     You are an expert at reading vehicle repair orders (RO).
-    Extract the parts and list them in json format.
+    Extract all the work that was done to the vehi cle, as well as, the parts changed and list them in json format.
+    the work should be listed in tech story. Write out every step of the work that was done to the vehicle from the RO
     this is an example from an RO demlimited by ''': '''C. MECDIAG REFERRING TO RO354148 LOW COOLANT WARNING
     LIGHT
     Warranty Pay $0.00

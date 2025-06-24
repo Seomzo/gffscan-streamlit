@@ -56,10 +56,13 @@ def parse_ro_with_llm(ro_text: str) -> list:
     print(f"    RO text length: {len(ro_text)}")
 
     prompt = f"""
-    You are an expert at reading vehicle repair orders (RO).
-    Extract all the work that was done to the vehi cle, as well as, the parts changed and list them in json format.
-    the work should be listed in tech story. Write out every step of the work that was done to the vehicle from the RO. 
+    You are an expert mechanic speciliazing in reading vehicle repair orders (RO) and understanding the work that was done to the vehicle.
+    youre job is to extract all the work details that was done to the vehicle, as well as, the parts changed and list them in json format.
+    an RO can have multiple Jobs, each job starts with a letter and a period. ex: "A., B., C., F., G., etc."
+    all of the work steps should be listed in tech story. Write out every step of the work that was done to the vehicle from the RO. usually a tech story starts witn a number and a period. ex: "1., 2., 3., 4., 5., etc." or it could be a short sentence ending with a period or even a short stence followed by "Labor $" here is a short example of some variations of different kinds of tech stories: '''2.  THE  CORRESPONDING  REPAIRS  WERE  MADE,  ON  THE  SUSPENSION  TIRES,  RIMS  AND  STEERING  RACK,TIRES, SHOCKS, SUB FRAME, ALIGNMENT, AXLE, DRIVE TEST WAS PERFORMED. TIRE2 -REPLACE TWO TIRES Labor $50.00'''
     I want you to basically write out the entire RO as it is. Leave out any Customer details, Billing details, Service Advisor, dealership details, or any dealership management system details.
+   
+    
     this is an example from an RO demlimited by ''': '''C. MECDIAG REFERRING TO RO354148 LOW COOLANT WARNING
     LIGHT
     Warranty Pay $0.00
@@ -85,8 +88,9 @@ def parse_ro_with_llm(ro_text: str) -> list:
     N-912-332-01 - HEX. NUT 3'''
 
     The Output should look like this:
-    "jobs": [MECDIAG], "Description": [REFERRING TO RO354148 LOW COOLANT WARNING
-    LIGHT],"Tech Story":[
+    "jobs": [C. MECDIAG REFERRING TO RO354148 LOW COOLANT WARNING
+    LIGHT], "Description": [MECDIAG -MECHANICAL DIAGNOSTIC],
+    "Tech Story":[
     "1. REPLACED COOLANT PUMP GASKET REMOVED THE AIR BOX AND AIR BOX DUCTING REMOVED THE
     CHARGE PIPE REMOVED THE BATTERY ANED BATTERY TRAY REMOVED THE UNDER TRAY AND DRAINED
     THE COOLANT REMOVED THE FUEL LINES AND EVAP LINES REMOVED THE COOLANT LINES FROM THE
